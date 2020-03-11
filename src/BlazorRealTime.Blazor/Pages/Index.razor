@@ -1,0 +1,52 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+
+<h1>Welcome to SignalR with Blazor</h1>
+<button class="btn btn-success" @onclick="async () => await ConnectToServer()" disabled="@isConnected">Connect</button>
+<h3>Connection Status: @connectionStatus</h3>
+<div class="row">
+    <div class="col-4">
+        @foreach (var item in notifications)
+        {
+            <div class="row">
+                <h4>@item</h4>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    string url = "http://localhost:63945/notificationhub";
+
+    HubConnection _connection = null;
+    bool isConnected = false;
+    string connectionStatus = "Closed";
+
+    List<string> notifications = new List<string>();
+
+    private async Task ConnectToServer()
+    {
+        _connection = new HubConnectionBuilder()
+            .WithUrl(url)
+            .Build();
+
+        await _connection.StartAsync();
+        isConnected = true;
+        connectionStatus = "Connected :-)";
+
+        _connection.Closed += async (s) =>
+        {
+            isConnected = false;
+            connectionStatus = "Disconnected";
+            await _connection.StartAsync();
+            isConnected = true;
+        };
+
+        _connection.On<string>("notification", m =>
+        {
+            notifications.Add(m);
+            StateHasChanged();
+        });
+    }
+
+}
